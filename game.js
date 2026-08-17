@@ -124,9 +124,12 @@ const POWERUP_CAP         = 3;
 const POWERUP_TTL         = 8;
 const SPEED_BOOST_TIME    = 5;
 const SPEED_BOOST_MULT    = 2;
+const TRIPLE_SHOT_TIME    = 5;
 
 class PowerUp {
-  constructor(x, y) {
+  constructor(x, y, type = 'speed') {
+    this.type = type;
+    this.x = x;
     this.x = x;
     this.y = y;
     const angle = rand(0, Math.PI * 2);
@@ -152,20 +155,34 @@ class PowerUp {
     if (blink) { ctx.restore(); return; }
 
     // Halo
-    ctx.strokeStyle = 'rgba(0, 255, 255, 0.25)';
+    ctx.strokeStyle = this.type === 'triple'
+      ? 'rgba(255, 200, 0, 0.25)'
+      : 'rgba(0, 255, 255, 0.25)';
     ctx.lineWidth   = 4;
     ctx.beginPath();
     ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
     ctx.stroke();
 
-    // Doble chevron ">>"
-    ctx.strokeStyle = '#0ff';
-    ctx.lineWidth   = 3;
-    ctx.lineCap     = 'round';
-    ctx.beginPath();
-    ctx.moveTo(-7, -7); ctx.lineTo( 2,  0); ctx.lineTo(-7,  7);
-    ctx.moveTo( 3, -7); ctx.lineTo(12,  0); ctx.lineTo( 3,  7);
-    ctx.stroke();
+    ctx.lineCap = 'round';
+    if (this.type === 'triple') {
+      // Triple bala: tres puntos alineados
+      ctx.strokeStyle = '#fc0';
+      ctx.lineWidth   = 3;
+      ctx.beginPath();
+      for (let i = 0; i < 3; i++) {
+        ctx.moveTo(-9 + i * 9, 0);
+        ctx.lineTo(-6 + i * 9, 0);
+      }
+      ctx.stroke();
+    } else {
+      // Doble chevron ">>"
+      ctx.strokeStyle = '#0ff';
+      ctx.lineWidth   = 3;
+      ctx.beginPath();
+      ctx.moveTo(-7, -7); ctx.lineTo( 2,  0); ctx.lineTo(-7,  7);
+      ctx.moveTo( 3, -7); ctx.lineTo(12,  0); ctx.lineTo( 3,  7);
+      ctx.stroke();
+    }
     ctx.restore();
   }
 }
@@ -185,6 +202,7 @@ class Ship {
     this.invincible    = 3;
     this.shootCooldown = 0;
     this.speedBoost    = 0;
+    this.tripleShot    = 0;
     this.dead          = false;
   }
 
@@ -192,7 +210,8 @@ class Ship {
     if (this.dead) return;
     if (this.invincible    > 0) this.invincible    -= dt;
     if (this.shootCooldown > 0) this.shootCooldown -= dt;
-    if (this.speedBoost    > 0) this.speedBoost    -= dt;
+    if (this.speedBoost > 0) this.speedBoost -= dt;
+    if (this.tripleShot > 0) this.tripleShot -= dt;
 
     const ROT    = 3.5;   // rad/s
     const THRUST = 260;   // px/s²
@@ -220,6 +239,17 @@ class Ship {
     const NOSE = 21;
     const ox = this.x + Math.cos(this.angle) * NOSE;
     const oy = this.y + Math.sin(this.angle) * NOSE;
+
+    if (this.tripleShot > 0) {
+      const OFFSET = 7; // desplazamiento lateral de las balas paralelas
+      const px = -Math.sin(this.angle);
+      const py =  Math.cos(this.angle);
+      return [
+        new Bullet(ox + px * OFFSET, oy + py * OFFSET, this.angle),
+        new Bullet(ox, oy, this.angle),
+        new Bullet(ox - px * OFFSET, oy - py * OFFSET, this.angle),
+      ];
+    }
     return [new Bullet(ox, oy, this.angle)];
   }
 
@@ -238,6 +268,17 @@ class Ship {
     // Halo del power-up "Velocidad"
     if (this.speedBoost > 0) {
       ctx.strokeStyle = 'rgba(0, 255, 255, 0.35)';
+      ctx.lineWidth   = 6;
+      ctx.beginPath();
+      ctx.arc(0, 0, this.radius + 6, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth   = 1.5;
+    }
+
+    // Halo del power-up "Triple Shot"
+    if (this.tripleShot > 0) {
+      ctx.strokeStyle = 'rgba(255, 200, 0, 0.35)';
       ctx.lineWidth   = 6;
       ctx.beginPath();
       ctx.arc(0, 0, this.radius + 6, 0, Math.PI * 2);
@@ -401,7 +442,7 @@ function update(dt) {
         explode(a.x, a.y, a.size * 5);
         newAsteroids.push(...a.split());
         if (Math.random() < POWERUP_DROP_CHANCE && powerUps.length < POWERUP_CAP)
-          powerUps.push(new PowerUp(a.x, a.y));
+          powerUps.push(new PowerUp(a.x, a.y, Math.random() < 0.5 ? 'speed' : 'triple'));
       }
     }
   }
@@ -422,7 +463,8 @@ function update(dt) {
   for (const p of powerUps) {
     if (!p.dead && dist(ship, p) < ship.radius + p.radius) {
       p.dead = true;
-      ship.speedBoost = SPEED_BOOST_TIME;
+      if (p.type === 'triple') ship.tripleShot = TRIPLE_SHOT_TIME;
+      else                    ship.speedBoost = SPEED_BOOST_TIME;
     }
   }
   powerUps = powerUps.filter(p => !p.dead);
