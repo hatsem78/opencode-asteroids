@@ -29,6 +29,40 @@ const dist  = (a, b)   => Math.hypot(a.x - b.x, a.y - b.y);
 const rand  = (min, max) => min + Math.random() * (max - min);
 const randInt = (min, max) => Math.floor(rand(min, max + 1));
 
+// ── Skins ─────────────────────────────────────────────────────────────────────
+const SKINS = [
+  {
+    name:  'CLÁSICA',
+    stroke: '#fff',
+    flame:  'rgba(255, 130, 0, 0.85)',
+    verts: [[20,0],[-12,-9],[-7,0],[-12,9]],
+  },
+  {
+    name:  'DAGA',
+    stroke: '#0ff',
+    flame:  'rgba(0, 255, 255, 0.85)',
+    verts: [[24,0],[2,-6],[-10,0],[2,6]],
+  },
+  {
+    name:  'FURTIVA',
+    stroke: '#0f5',
+    flame:  'rgba(0, 255, 120, 0.85)',
+    verts: [[16,0],[-14,-12],[2,0],[-14,12]],
+  },
+  {
+    name:  'AGUIJÓN',
+    stroke: '#fa0',
+    flame:  'rgba(255, 170, 0, 0.85)',
+    verts: [[28,0],[0,-5],[-12,0],[0,5]],
+  },
+  {
+    name:  'FÉNIX',
+    stroke: '#f4f',
+    flame:  'rgba(255, 68, 255, 0.85)',
+    verts: [[0,-18],[20,0],[0,18],[-20,0]],
+  },
+];
+
 // ── Bullet ────────────────────────────────────────────────────────────────────
 class Bullet {
   constructor(x, y, angle) {
@@ -261,7 +295,9 @@ class Ship {
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.angle);
-    ctx.strokeStyle = '#fff';
+
+    const skin = SKINS[currentSkin];
+    ctx.strokeStyle = skin.stroke;
     ctx.lineWidth   = 1.5;
     ctx.lineJoin    = 'round';
 
@@ -272,27 +308,26 @@ class Ship {
       ctx.beginPath();
       ctx.arc(0, 0, this.radius + 6, 0, Math.PI * 2);
       ctx.stroke();
-      ctx.strokeStyle = '#fff';
+      ctx.strokeStyle = skin.stroke;
       ctx.lineWidth   = 1.5;
     }
 
-    // Halo del power-up "Triple Shot"
+// Halo del power-up "Triple Shot"
     if (this.tripleShot > 0) {
       ctx.strokeStyle = 'rgba(255, 200, 0, 0.35)';
       ctx.lineWidth   = 6;
       ctx.beginPath();
       ctx.arc(0, 0, this.radius + 6, 0, Math.PI * 2);
       ctx.stroke();
-      ctx.strokeStyle = '#fff';
+      ctx.strokeStyle = skin.stroke;
       ctx.lineWidth   = 1.5;
     }
 
-    // Silueta clásica: triángulo con muesca trasera
+    // Silueta según skin activa
     ctx.beginPath();
-    ctx.moveTo( 20,  0);   // nariz
-    ctx.lineTo(-12, -9);   // ala izquierda
-    ctx.lineTo( -7,  0);   // muesca trasera
-    ctx.lineTo(-12,  9);   // ala derecha
+    ctx.moveTo(skin.verts[0][0], skin.verts[0][1]);
+    for (let i = 1; i < skin.verts.length; i++)
+      ctx.lineTo(skin.verts[i][0], skin.verts[i][1]);
     ctx.closePath();
     ctx.stroke();
 
@@ -302,7 +337,7 @@ class Ship {
       ctx.moveTo(-8, -4);
       ctx.lineTo(-8 - rand(6, 14), 0);
       ctx.lineTo(-8,  4);
-      ctx.strokeStyle = 'rgba(255, 130, 0, 0.85)';
+      ctx.strokeStyle = skin.flame;
       ctx.stroke();
     }
 
@@ -347,6 +382,19 @@ let ship, bullets, asteroids, particles, powerUps;
 let score, lives, level;
 let state;      // 'playing' | 'dead' | 'gameover'
 let deadTimer;
+let currentSkin;
+
+function loadSkin() {
+  const saved = parseInt(localStorage.getItem('asteroids.skin'), 10);
+  currentSkin = Number.isInteger(saved) && saved >= 0 && saved < SKINS.length
+    ? saved
+    : 0;
+}
+function selectSkin(i) {
+  if (i < 0 || i >= SKINS.length) return;
+  currentSkin = i;
+  localStorage.setItem('asteroids.skin', String(i));
+}
 
 function spawnAsteroids(count) {
   const SAFE_DIST = 130;
@@ -416,6 +464,12 @@ function update(dt) {
     return;
   }
 
+  if (state === 'playing') {
+    for (let i = 1; i <= SKINS.length; i++) {
+      if (pressed(`Digit${i}`)) selectSkin(i - 1);
+    }
+  }
+
   // Disparar
   if (pressed('Space')) {
     bullets.push(...ship.tryShoot());
@@ -475,17 +529,17 @@ function update(dt) {
 
 // ── Draw ──────────────────────────────────────────────────────────────────────
 function drawLifeIcon(x, y) {
+  const skin = SKINS[currentSkin];
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(-Math.PI / 2);
-  ctx.strokeStyle = '#fff';
+  ctx.strokeStyle = skin.stroke;
   ctx.lineWidth   = 1.2;
   ctx.lineJoin    = 'round';
   ctx.beginPath();
-  ctx.moveTo( 9,  0);
-  ctx.lineTo(-6, -5);
-  ctx.lineTo(-3,  0);
-  ctx.lineTo(-6,  5);
+  ctx.moveTo(skin.verts[0][0], skin.verts[0][1]);
+  for (let i = 1; i < skin.verts.length; i++)
+    ctx.lineTo(skin.verts[i][0], skin.verts[i][1]);
   ctx.closePath();
   ctx.stroke();
   ctx.restore();
@@ -500,6 +554,9 @@ function drawHUD() {
 
   ctx.textAlign = 'center';
   ctx.fillText(`NIVEL ${level}`, W / 2, 26);
+
+  ctx.textAlign = 'right';
+  ctx.fillText(`SKIN: ${SKINS[currentSkin].name}  (1-${SKINS.length})`, W - 16, 46);
 
   for (let i = 0; i < lives; i++)
     drawLifeIcon(W - 16 - i * 22, 18);
@@ -543,5 +600,6 @@ function loop(ts) {
   requestAnimationFrame(loop);
 }
 
+loadSkin();
 initGame();
 requestAnimationFrame(loop);
