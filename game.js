@@ -61,6 +61,14 @@ const SKINS = [
     flame:  'rgba(255, 68, 255, 0.85)',
     verts: [[0,-18],[20,0],[0,18],[-20,0]],
   },
+  {
+    name:  'TITÁN',
+    stroke: '#a55bff',
+    flame:  'rgba(165, 91, 255, 0.85)',
+    verts: [[20,0],[-12,-9],[-7,0],[-12,9]],
+    scale: 2,
+    multiplier: 2,
+  },
 ];
 
 // ── Bullet ────────────────────────────────────────────────────────────────────
@@ -244,7 +252,7 @@ class Ship {
     this.angle  = -Math.PI / 2;
     this.vx     = 0;
     this.vy     = 0;
-    this.radius = 12;
+    this.radius = 12 * (SKINS[currentSkin].scale || 1);
     this.thrusting     = false;
     this.invincible    = 3;
     this.shootCooldown = 0;
@@ -285,7 +293,7 @@ if (this.speedBoost    > 0) this.speedBoost    -= dt;
   tryShoot() {
     if (this.shootCooldown > 0 || this.dead) return [];
     this.shootCooldown = 0.2;
-    const NOSE = 21;
+    const NOSE = 21 * (SKINS[currentSkin].scale || 1);
     const ox = this.x + Math.cos(this.angle) * NOSE;
     const oy = this.y + Math.sin(this.angle) * NOSE;
 
@@ -349,19 +357,20 @@ if (this.speedBoost    > 0) this.speedBoost    -= dt;
     }
 
     // Silueta según skin activa
+    const s = skin.scale || 1;
     ctx.beginPath();
-    ctx.moveTo(skin.verts[0][0], skin.verts[0][1]);
+    ctx.moveTo(skin.verts[0][0] * s, skin.verts[0][1] * s);
     for (let i = 1; i < skin.verts.length; i++)
-      ctx.lineTo(skin.verts[i][0], skin.verts[i][1]);
+      ctx.lineTo(skin.verts[i][0] * s, skin.verts[i][1] * s);
     ctx.closePath();
     ctx.stroke();
 
     // Llama del propulsor
     if (this.thrusting && Math.random() > 0.35) {
       ctx.beginPath();
-      ctx.moveTo(-8, -4);
-      ctx.lineTo(-8 - rand(6, 14), 0);
-      ctx.lineTo(-8,  4);
+      ctx.moveTo(-8 * s, -4 * s);
+      ctx.lineTo(-8 * s - rand(6, 14) * s, 0);
+      ctx.lineTo(-8 * s,  4 * s);
       ctx.strokeStyle = skin.flame;
       ctx.stroke();
     }
@@ -418,6 +427,7 @@ function loadSkin() {
 function selectSkin(i) {
   if (i < 0 || i >= SKINS.length) return;
   currentSkin = i;
+  if (ship) ship.radius = 12 * (SKINS[currentSkin].scale || 1);
   localStorage.setItem('asteroids.skin', String(i));
 }
 
@@ -461,7 +471,7 @@ function explode(x, y, count = 8) {
 
 function destroyAsteroid(a) {
   a.dead = true;
-  score += POINTS[a.size];
+  score += POINTS[a.size] * (SKINS[currentSkin].multiplier || 1);
   explode(a.x, a.y, a.size * 5);
   const split = a.split();
   if (Math.random() < POWERUP_DROP_CHANCE && powerUps.length < POWERUP_CAP) {
@@ -570,6 +580,7 @@ function update(dt) {
 // ── Draw ──────────────────────────────────────────────────────────────────────
 function drawLifeIcon(x, y) {
   const skin = SKINS[currentSkin];
+  const s = skin.scale || 1;
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(-Math.PI / 2);
@@ -577,9 +588,9 @@ function drawLifeIcon(x, y) {
   ctx.lineWidth   = 1.2;
   ctx.lineJoin    = 'round';
   ctx.beginPath();
-  ctx.moveTo(skin.verts[0][0], skin.verts[0][1]);
+  ctx.moveTo(skin.verts[0][0] * s, skin.verts[0][1] * s);
   for (let i = 1; i < skin.verts.length; i++)
-    ctx.lineTo(skin.verts[i][0], skin.verts[i][1]);
+    ctx.lineTo(skin.verts[i][0] * s, skin.verts[i][1] * s);
   ctx.closePath();
   ctx.stroke();
   ctx.restore();
