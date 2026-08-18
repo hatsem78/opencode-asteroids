@@ -61,6 +61,14 @@ const SKINS = [
     flame:  'rgba(255, 68, 255, 0.85)',
     verts: [[0,-18],[20,0],[0,18],[-20,0]],
   },
+  {
+    name:  'VIOLETA',
+    stroke: '#c06cf8',
+    flame:  'rgba(192, 108, 248, 0.85)',
+    verts: [[40,0],[-24,-18],[-14,0],[-24,18]],
+    scale: 2,
+    mult:  2,
+  },
 ];
 
 // ── Bullet ────────────────────────────────────────────────────────────────────
@@ -244,7 +252,7 @@ class Ship {
     this.angle  = -Math.PI / 2;
     this.vx     = 0;
     this.vy     = 0;
-    this.radius = 12;
+    this.radius = 12 * (SKINS[currentSkin].scale || 1);
     this.thrusting     = false;
     this.invincible    = 3;
     this.shootCooldown = 0;
@@ -285,7 +293,7 @@ if (this.speedBoost    > 0) this.speedBoost    -= dt;
   tryShoot() {
     if (this.shootCooldown > 0 || this.dead) return [];
     this.shootCooldown = 0.2;
-    const NOSE = 21;
+    const NOSE = 21 * (SKINS[currentSkin].scale || 1);
     const ox = this.x + Math.cos(this.angle) * NOSE;
     const oy = this.y + Math.sin(this.angle) * NOSE;
 
@@ -358,10 +366,11 @@ if (this.speedBoost    > 0) this.speedBoost    -= dt;
 
     // Llama del propulsor
     if (this.thrusting && Math.random() > 0.35) {
+      const s = skin.scale || 1;
       ctx.beginPath();
-      ctx.moveTo(-8, -4);
-      ctx.lineTo(-8 - rand(6, 14), 0);
-      ctx.lineTo(-8,  4);
+      ctx.moveTo(-8 * s, -4 * s);
+      ctx.lineTo(-8 * s - rand(6, 14) * s, 0);
+      ctx.lineTo(-8 * s, 4 * s);
       ctx.strokeStyle = skin.flame;
       ctx.stroke();
     }
@@ -461,7 +470,7 @@ function explode(x, y, count = 8) {
 
 function destroyAsteroid(a) {
   a.dead = true;
-  score += POINTS[a.size];
+  score += POINTS[a.size] * (SKINS[currentSkin].mult || 1);
   explode(a.x, a.y, a.size * 5);
   const split = a.split();
   if (Math.random() < POWERUP_DROP_CHANCE && powerUps.length < POWERUP_CAP) {
@@ -570,9 +579,11 @@ function update(dt) {
 // ── Draw ──────────────────────────────────────────────────────────────────────
 function drawLifeIcon(x, y) {
   const skin = SKINS[currentSkin];
+  const s = 1 / (skin.scale || 1);
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(-Math.PI / 2);
+  ctx.scale(s, s);
   ctx.strokeStyle = skin.stroke;
   ctx.lineWidth   = 1.2;
   ctx.lineJoin    = 'round';
@@ -596,7 +607,8 @@ function drawHUD() {
   ctx.fillText(`NIVEL ${level}`, W / 2, 26);
 
   ctx.textAlign = 'right';
-  ctx.fillText(`SKIN: ${SKINS[currentSkin].name}  (1-${SKINS.length})`, W - 16, 46);
+  const mult = SKINS[currentSkin].mult || 1;
+  ctx.fillText(`SKIN: ${SKINS[currentSkin].name}${mult > 1 ? ` x${mult}` : ''}  (1-${SKINS.length})`, W - 16, 46);
 
   for (let i = 0; i < lives; i++)
     drawLifeIcon(W - 16 - i * 22, 18);
