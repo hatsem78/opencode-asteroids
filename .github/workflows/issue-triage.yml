@@ -21,10 +21,10 @@ jobs:
         uses: anomalyco/opencode/github@latest
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
-          #GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
         with:
           model: opencode/deepseek-v4-flash-free
-          use_github_token: false
+          use_github_token: true
           prompt: |
             Eres el encargado de triage de issues de este repositorio.
             El evento actual es un issue abierto/editado. Debes:
@@ -57,5 +57,6 @@ jobs:
                - Devuelve solo el JSON, nada más.
           
 
-            Usa el token de GitHub disponible (OPENCODE_API_KEY) para llamar a la API.
+            Usa el token de GitHub disponible en la variable de entorno GITHUB_TOKEN
+            (Authorization: Bearer $GITHUB_TOKEN) para llamar a la API de GitHub.
             Trabaja en español, igual que el resto del proyecto.
