@@ -1,0 +1,53 @@
+name: Issue Triage
+
+on:
+  issues:
+    types: [opened, edited]
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Run opencode triage
+        uses: anomalyco/opencode/github@latest
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+        with:
+          model: opencode/deepseek-v4-flash-free
+          use_github_token: true
+          prompt: |
+            Eres el encargado de triage de issues de este repositorio.
+            El evento actual es un issue abierto/editado. Debes:
+
+            1. Formatear el issue usando la API de GitHub:
+               - Conserva el cuerpo original del autor EXACTAMENTE como está (no lo modifiques ni reformatees).
+               - Añade al final una sección separada por `---` con el marcador `<!-- issue-triage -->` y estos bloques:
+                 - "## 🧾 Información añadida por triage automático"
+                 - "### Resumen" con el tipo detectado (bug, mejora, diseño, rendimiento, pregunta) y 1-2 líneas de resumen.
+                 - "### Referencias a código" con enlaces a game.js, index.html y README.md.
+                 - "### Pasos de verificación sugeridos" con checklist: `npx serve .` y abrir http://localhost:3000, reproducir el comportamiento, revisar consola del navegador.
+                 - "### Metadata del reporte" con autor, fecha, rama y commit.
+               - Si el cuerpo ya contiene `<!-- issue-triage -->`, NO hagas nada (salir sin modificar) para evitar loops.
+
+            2. Asignar etiquetas (labels) según el contenido:
+               - Bug → "bug"; Mejora → "enhancement"; Pregunta → "question";
+                 Diseño/visual/skin → "cosmetic"; Rendimiento → "performance".
+               - Primero detecta por los checkboxes del template (ej. `- [x] Bug`).
+               - Si no hay checkbox, detecta por palabras clave del título/cuerpo
+                 (bug, error, falla, no funciona → bug; mejora, añadir, agregar → enhancement;
+                 diseño, color, skin, visual → cosmetic; lento, fps, rendimiento → performance;
+                 como, cómo, ayuda, duda → question).
+               - Si no aplica nada, usa la etiqueta "triage".
+               - Usa la API de GitHub para añadir los labels al issue.
+
+            Usa el token de GitHub disponible (GITHUB_TOKEN) para llamar a la API.
+            Trabaja en español, igual que el resto del proyecto.
