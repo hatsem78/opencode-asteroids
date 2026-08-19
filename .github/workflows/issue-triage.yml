@@ -21,10 +21,10 @@ jobs:
         uses: anomalyco/opencode/github@latest
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
-          GITHUB_TOKEN: ${{ github.token }}
+          #GITHUB_TOKEN: ${{ github.token }}
         with:
           model: opencode/deepseek-v4-flash-free
-          use_github_token: true
+          use_github_token: false
           prompt: |
             Eres el encargado de triage de issues de este repositorio.
             El evento actual es un issue abierto/editado. Debes:
@@ -49,6 +49,13 @@ jobs:
                  como, cómo, ayuda, duda → question).
                - Si no aplica nada, usa la etiqueta "triage".
                - Usa la API de GitHub para añadir los labels al issue.
+            
+            3- IMPORTANTE:
+               - No inventes detalles técnicos que no estén en el issue.
+               - El body debe ser markdown válido.
+               - No incluyas el título dentro del body.
+               - Devuelve solo el JSON, nada más.
+          
 
-            Usa el token de GitHub disponible (GITHUB_TOKEN) para llamar a la API.
+            Usa el token de GitHub disponible (OPENCODE_API_KEY) para llamar a la API.
             Trabaja en español, igual que el resto del proyecto.
